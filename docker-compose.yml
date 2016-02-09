@@ -1,0 +1,42 @@
+data-echofox.io:
+ build: ./data-echofox.io
+ container_name: "data-echofox.io"
+
+ghost:
+  image: ghost:latest
+  ports:
+    - "2368"
+  env_file:
+    - config.env
+  volumes:
+    - /srv/ghost:/var/lib/ghost
+
+nginx:
+  image: nginx:latest
+  volumes:
+    - /tmp/nginx:/etc/nginx/conf.d
+    - /srv/nginx/certs:/etc/nginx/certs
+  ports:
+    - "80:80"
+
+dockergen:
+  image: jwilder/docker-gen
+  env_file:
+    - config.env
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - /srv/nginx-proxy:/etc/docker-gen/templates
+  volumes_from:
+    - nginx
+  command: -notify-sighup nginx -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+
+mariadb:  
+ image: mariadb
+ container_name: "mariadb"
+ env_file: ./data-echofox.io/env_echofox.io
+ environment:
+  - TERM=xterm
+ ports:
+  - "127.0.0.1:3306:3306"
+ volumes_from:
+  - data-echofox.io
